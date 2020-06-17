@@ -1,10 +1,10 @@
 package gipl.web.project.utility;
 
 import java.util.Properties;
-import java.util.StringJoiner;
 
 import javax.mail.Authenticator;
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
@@ -13,6 +13,9 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+
+import gipl.web.project.exception.InvalidInputException;
+import gipl.web.project.message.Validation;
 
 /**
  * -------------------------------------------------------------
@@ -39,18 +42,34 @@ public class EmailHelper {
 		return emailProps;
 	}
 	
+	/**
+	 * This method constructs an email message.
+	 * @param sender
+	 * @param recepientTo
+	 * @param recepientCC
+	 * @param recepientBCC
+	 * @param subject
+	 * @param messageStr
+	 * @param attachmentFilePath
+	 * @return
+	 */
 	public static Message GetEmailMessage(String sender,
 			String[] recepientTo, 
 			String[] recepientCC, 
 			String[] recepientBCC,
 			String subject,
 			String messageStr,
-			String[] attachmentFilePath) {
+			String[] attachmentFilePath) throws InvalidInputException, MessagingException {
+		
 		// Validate.
-		if (recepientTo == null || recepientTo.length == 0 || 
-				StringHelper.IsNullOrEmpty(subject) || 
-				StringHelper.IsNullOrEmpty(messageStr)) {
-			return null;
+		if (ArrayHelper.IsNullOrEmpty(recepientTo)) {
+			throw new InvalidInputException(Validation.EMPTY_FIELD_PREFIX + "recipients.", null);
+		}
+		if (StringHelper.IsNullOrEmpty(subject)) {
+			throw new InvalidInputException(Validation.EMPTY_FIELD_PREFIX + "subject.", null);
+		}
+		if (StringHelper.IsNullOrEmpty(messageStr)) {
+			throw new InvalidInputException(Validation.EMPTY_FIELD_PREFIX + "message.", null);
 		}
 		
 		// Construct message.
@@ -88,16 +107,17 @@ public class EmailHelper {
 			multiPart.addBodyPart(mimeBodyPart);
 			
 			message.setContent(multiPart);
-		} catch (Exception ex) { }
-		
-		// Send message.
-		try {
-			Transport.send(message);
-		} catch (Exception e) { }
+		} catch (MessagingException ex) { 
+			throw ex;
+		}
 		
 		return message;
 	}
 	
+	/**
+	 * This method returns session.
+	 * @return
+	 */
 	public static Session GetSession() {
 		Properties emailProp = getEmailSetupProperties();
 		Session session  = Session.getInstance(emailProp, new Authenticator() {
@@ -107,6 +127,51 @@ public class EmailHelper {
 		});
 		
 		return session;
+	}
+	
+	/**
+	 * This method sends an email with the specified data. 
+	 * @param sender
+	 * @param recepientTo
+	 * @param recepientCC
+	 * @param recepientBCC
+	 * @param subject
+	 * @param messageStr
+	 * @param attachmentFilePath
+	 * @return
+	 */
+	public static boolean SendEmail(String sender,
+			String[] recepientTo, 
+			String[] recepientCC, 
+			String[] recepientBCC,
+			String subject,
+			String messageStr,
+			String[] attachmentFilePath) throws InvalidInputException, MessagingException {
+		
+		// Initialize.
+		Message message = null;
+		
+		try {
+			message = GetEmailMessage(sender, 
+					recepientTo, 
+					recepientCC, 
+					recepientBCC, 
+					subject, 
+					messageStr, 
+					attachmentFilePath);
+		} catch (InvalidInputException ex) {
+			throw ex;
+		} catch (MessagingException ex) {
+			throw ex;
+		}
+		
+		try {
+			Transport.send(message);
+		} catch (MessagingException ex) {
+			throw ex;
+		}
+		
+		return true;
 	}
 	
 }
