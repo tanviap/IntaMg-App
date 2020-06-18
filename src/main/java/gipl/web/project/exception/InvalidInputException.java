@@ -6,6 +6,7 @@ package gipl.web.project.exception;
  * ------------------------------------------------
  */
 public class InvalidInputException extends Exception {	
+	
 	private static final long serialVersionUID = 1340858650538182127L;
 
 	public InvalidInputException(String errorMessage, Throwable error) {
